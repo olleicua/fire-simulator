@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fire Simulation</title>
+    <style>
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background-color: black;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="fireCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('fireCanvas');
+        const ctx = canvas.getContext('2d');
+        const width = 400;
+        const height = 300;
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const fireColorsPalette = ['#221000', '#331c00', '#4d2600', '#663300', '#994d00', '#a45d00', '#cc6600', '#dd7000', '#ff8000', '#ff9933', '#ffaa66', '#ffaf73', '#ffb380', '#ffc199', '#ffd1b3', '#f0e0e0', '#e0e0f0', '#ead0e0'];
+
+        const firePixelsArray = [];
+        const fireWidth = 80;
+        const fireHeight = 50;
+        const fireIntensity = 18;
+
+        function start() {
+            createFireDataStructure();
+            createFireSource();
+            renderFire();
+            setInterval(calculateFirePropagation, 50);
+        }
+
+        function createFireDataStructure() {
+            for (let i = 0; i < fireWidth * fireHeight; i++) {
+                firePixelsArray[i] = 0;
+            }
+        }
+
+        function calculateFirePropagation() {
+            for (let column = 0; column < fireWidth; column++) {
+                for (let row = 0; row < fireHeight; row++) {
+                    const pixelIndex = column + (fireWidth * row);
+                    updateFireIntensityPerPixel(pixelIndex);
+                }
+            }
+
+            renderFire();
+        }
+
+        function updateFireIntensityPerPixel(currentPixelIndex) {
+            const belowPixelIndex = currentPixelIndex + fireWidth;
+
+            if (belowPixelIndex >= fireWidth * fireHeight) {
+                return;
+            }
+
+            const belowPixelFireIntensity = firePixelsArray[belowPixelIndex];
+            const decayRange = (1.5 + (belowPixelFireIntensity / 25));
+            const decay = Math.floor(Math.random() * decayRange);
+            const drift = (decay * 2) - Math.floor(decayRange);
+            const newFireIntensity = belowPixelFireIntensity - drift >= 0 ? belowPixelFireIntensity - decay : 0;
+
+            firePixelsArray[currentPixelIndex - decay] = newFireIntensity;
+        }
+
+        function renderFire() {
+            ctx.clearRect(0, 0, width, height);
+
+            for (let column = 0; column < fireWidth; column++) {
+                for (let row = 0; row < fireHeight; row++) {
+                    const pixelIndex = column + (fireWidth * row);
+                    const pixelIntensity = firePixelsArray[pixelIndex];
+                    const color = fireColorsPalette[pixelIntensity];
+                    const radius = pixelIntensity === 0 ? 0 : Math.max(3 - (pixelIntensity / 4), 0)
+                    const radii = [0, 0, 0, 0].map(() => Math.random() > 0.5 ? radius : 0);
+                    ctx.beginPath();
+                    ctx.roundRect(column * 5, row * 5, 5, 5, radii);
+                    ctx.fillStyle = color;
+                    ctx.fill();
+                }
+            }
+        }
+
+        function createFireSource() {
+            for (let column = 0; column < fireWidth; column++) {
+                const overflowPixelIndex = fireWidth * fireHeight;
+                const pixelIndex = (overflowPixelIndex - fireWidth) + column;
+
+                const fromCenter = (column - (fireWidth / 2));
+                const pixelIntensity = Math.floor(fireIntensity - (
+                  fireIntensity * fromCenter * fromCenter /
+                  ((fireWidth * fireWidth / 4))
+                ));
+                firePixelsArray[pixelIndex] = pixelIntensity;
+            }
+        }
+
+        start();
+    </script>
+</body>
+</html>
